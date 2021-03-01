@@ -45,7 +45,7 @@ bool CICYThermostat::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CICYThermostat::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted=true;
 	sOnConnected(this);
@@ -102,7 +102,7 @@ void CICYThermostat::SendSetPointSensor(const unsigned char Idx, const float Tem
 
 	thermos.temp=Temp;
 
-	sDecodeRXMessage(this, (const unsigned char *)&thermos, defaultname.c_str(), 255);
+	sDecodeRXMessage(this, (const unsigned char *)&thermos, defaultname.c_str(), 255, nullptr);
 }
 
 bool CICYThermostat::GetSerialAndToken()

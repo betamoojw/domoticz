@@ -27,7 +27,7 @@ bool KMTronicUDP::StartHardware()
 
 	Init();
  	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&KMTronicUDP::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted = true;
 	sOnConnected(this);
@@ -188,6 +188,6 @@ void KMTronicUDP::GetMeterDetails()
                 std::stringstream sstr;
                 int iRelay = (jj + 1);
                 sstr << "Relay " << iRelay;
-                SendSwitch(iRelay, 1, 255, bIsOn, 0, sstr.str());
+		SendSwitch(iRelay, 1, 255, bIsOn, 0, sstr.str(), m_Name);
         }
 }

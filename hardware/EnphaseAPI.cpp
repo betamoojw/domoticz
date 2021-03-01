@@ -71,7 +71,7 @@ bool EnphaseAPI::StartHardware()
 	RequestStart();
 
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&EnphaseAPI::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted = true;
 	sOnConnected(this);
@@ -198,9 +198,10 @@ void EnphaseAPI::parseProduction(const Json::Value& root)
 
 	if (sunRise != 0 && sunSet != 0)
 	{
-		//We only poll one hour before sunrise till one hour after sunset
+		//We only process one hour before sunrise till one hour after sunset
 
 		//GizMoCuz: why is this as the production.json is retreived anyway ?
+			//Tuurtje: production.json also contains data from the CT's. Consumption and NetConsumption produce data all day.
 
 		if (ActHourMin + 60 < sunRise)
 			return;
@@ -224,7 +225,7 @@ void EnphaseAPI::parseProduction(const Json::Value& root)
 	m_p1power.powerusage1 = mtotal;
 	m_p1power.powerusage2 = 0;
 	m_p1power.usagecurrent = std::max(musage,0);
-	sDecodeRXMessage(this, (const unsigned char *)&m_p1power, "Enphase Production kWh Total", 255);
+	sDecodeRXMessage(this, (const unsigned char *)&m_p1power, "Enphase Production kWh Total", 255, nullptr);
 }
 
 void EnphaseAPI::parseConsumption(const Json::Value& root)
@@ -248,8 +249,8 @@ void EnphaseAPI::parseConsumption(const Json::Value& root)
 
 	m_c1power.powerusage1 = mtotal;
 	m_c1power.powerusage2 = 0;
-	m_c1power.usagecurrent = musage;
-	sDecodeRXMessage(this, (const unsigned char *)&m_c1power, "Enphase Consumption kWh Total", 255);
+	m_c1power.usagecurrent = std::max(musage,0);
+	sDecodeRXMessage(this, (const unsigned char *)&m_c1power, "Enphase Consumption kWh Total", 255, nullptr);
 }
 
 void EnphaseAPI::parseNetConsumption(const Json::Value& root)
@@ -273,6 +274,6 @@ void EnphaseAPI::parseNetConsumption(const Json::Value& root)
 
 	m_c2power.powerusage1 = mtotal;
 	m_c2power.powerusage2 = 0;
-	m_c2power.usagecurrent = musage;
-	sDecodeRXMessage(this, (const unsigned char *)&m_c2power, "Enphase Net Consumption kWh Total", 255);
+	m_c2power.usagecurrent = std::max(musage,0);
+	sDecodeRXMessage(this, (const unsigned char *)&m_c2power, "Enphase Net Consumption kWh Total", 255, nullptr);
 }

@@ -177,7 +177,7 @@ bool CSysfsGpio::StartHardware()
 
 	Init();
 
-	m_thread = std::make_shared<std::thread>(&CSysfsGpio::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted = true;
 
@@ -481,7 +481,7 @@ void CSysfsGpio::Init()
 
 	if (m_interrupts_enabled)
 	{
-		m_edge_thread = std::make_shared<std::thread>(&CSysfsGpio::EdgeDetectThread, this);
+		m_edge_thread = std::make_shared<std::thread>([this] { EdgeDetectThread(); });
 		SetThreadName(m_edge_thread->native_handle(), "SysfsGpio_Edge");
 	}
 }
@@ -737,7 +737,7 @@ void CSysfsGpio::UpdateDomoticzInputs(bool forceUpdate)
 					UpdateDeviceID(s.pin_number);
 					m_Packet.LIGHTING2.unitcode = (char)s.pin_number;
 					m_Packet.LIGHTING2.seqnbr++;
-					sDecodeRXMessage(this, (const unsigned char *)&m_Packet.LIGHTING2, "Input", 255);
+					sDecodeRXMessage(this, (const unsigned char *)&m_Packet.LIGHTING2, "Input", 255, m_Name.c_str());
 
 					if (log_db_change)
 					{

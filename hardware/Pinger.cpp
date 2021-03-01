@@ -19,8 +19,6 @@
 
 #include <iostream>
 
-using namespace boost::placeholders;
-
 #if BOOST_VERSION >= 107000
 #define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
 #else
@@ -75,7 +73,7 @@ private:
 
 		num_replies_ = 0;
 		timer_.expires_at(time_sent_ + boost::posix_time::milliseconds(PingTimeoutms_));
-		timer_.async_wait(boost::bind(&pinger::handle_timeout, this, boost::asio::placeholders::error));
+		timer_.async_wait([this](auto err) { handle_timeout(err); });
 	}
 
 	void handle_timeout(const boost::system::error_code& error)
@@ -93,7 +91,7 @@ private:
 				}
 				else
 				{
-					timer_.async_wait(boost::bind(&pinger::start_send, this));
+					timer_.async_wait([this](auto &) { start_send(); });
 				}
 			}
 		}
@@ -105,8 +103,7 @@ private:
 		reply_buffer_.consume(reply_buffer_.size());
 
 		// Wait for a reply. We prepare the buffer to receive up to 64KB.
-		socket_.async_receive(reply_buffer_.prepare(65536),
-			boost::bind(&pinger::handle_receive, this, _2));
+		socket_.async_receive(reply_buffer_.prepare(65536), [this](auto, auto bytes) { handle_receive(bytes); });
 	}
 
 	void handle_receive(std::size_t length)
@@ -187,7 +184,7 @@ bool CPinger::StartHardware()
 	ReloadNodes();
 
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CPinger::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	return true;
 }
@@ -253,7 +250,7 @@ void CPinger::AddNode(const std::string &Name, const std::string &IPAddress, con
 	char szID[40];
 	sprintf(szID, "%X%02X%02X%02X", 0, 0, (ID & 0xFF00) >> 8, ID & 0xFF);
 
-	SendSwitch(ID, 1, 255, false, 0, Name);
+	SendSwitch(ID, 1, 255, false, 0, Name, m_Name);
 	ReloadNodes();
 }
 
@@ -377,14 +374,14 @@ void CPinger::UpdateNodeStatus(const PingNode &Node, const bool bPingOK)
 			if (bPingOK)
 			{
 				node.LastOK = atime;
-				SendSwitch(Node.ID, 1, 255, bPingOK, 0, Node.Name);
+				SendSwitch(Node.ID, 1, 255, bPingOK, 0, Node.Name, m_Name);
 			}
 			else
 			{
 				if (difftime(atime, node.LastOK) >= Node.SensorTimeoutSec)
 				{
 					node.LastOK = atime;
-					SendSwitch(Node.ID, 1, 255, bPingOK, 0, Node.Name);
+					SendSwitch(Node.ID, 1, 255, bPingOK, 0, Node.Name, m_Name);
 				}
 			}
 			break;
@@ -402,7 +399,7 @@ void CPinger::DoPingHosts()
 		if (m_iThreadsRunning < 1000)
 		{
 			//m_iThreadsRunning++;
-			boost::thread t(boost::bind(&CPinger::Do_Ping_Worker, this, node));
+			boost::thread t([this, node] { Do_Ping_Worker(node); });
 			SetThreadName(t.native_handle(), "PingerWorker");
 			t.join();
 		}

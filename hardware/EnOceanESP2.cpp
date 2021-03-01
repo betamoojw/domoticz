@@ -8,15 +8,12 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
-#include <boost/bind/bind.hpp>
 #include "hardwaretypes.h"
 #include "../main/localtime_r.h"
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <cmath>
 #include <ctime>
-
-using namespace boost::placeholders;
 
 #define ENOCEAN_RETRY_DELAY 30
 
@@ -699,7 +696,7 @@ bool CEnOceanESP2::StartHardware()
 	m_retrycntr = ENOCEAN_RETRY_DELAY * 5; //will force reconnect first thing
 
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CEnOceanESP2::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 
 	return (m_thread != nullptr);
@@ -1037,7 +1034,7 @@ bool CEnOceanESP2::OpenSerialDevice()
 	}
 	m_bIsStarted = true;
 	m_receivestate = ERS_SYNC1;
-	setReadCallback(boost::bind(&CEnOceanESP2::readCallback, this, _1, _2));
+	setReadCallback([this](auto d, auto l) { readCallback(d, l); });
 	sOnConnected(this);
 
 	enocean_data_structure iframe;
@@ -1177,9 +1174,9 @@ bool CEnOceanESP2::WriteToHardware(const char* pdata, const unsigned char /*leng
 			iLevel = tsen->LIGHTING2.level;
 			if (iLevel > 15)
 				iLevel = 15;
-			float fLevel = (100.0f / 15.0f) * float(iLevel);
-			if (fLevel > 99.0f)
-				fLevel = 100.0f;
+			float fLevel = (100.0F / 15.0F) * float(iLevel);
+			if (fLevel > 99.0F)
+				fLevel = 100.0F;
 			iLevel = (uint8_t)(fLevel);
 		}
 		cmnd = light2_sSetLevel;
@@ -1277,10 +1274,10 @@ float CEnOceanESP2::GetValueRange(const float InValue, const float ScaleMax, con
 {
 	float vscale = ScaleMax - ScaleMin;
 	if (vscale == 0)
-		return 0.0f;
+		return 0.0F;
 	float vrange = RangeMax - RangeMin;
 	if (vrange == 0)
-		return 0.0f;
+		return 0.0F;
 	float multiplyer = vscale / vrange;
 	return multiplyer * (InValue - RangeMin) + ScaleMin;
 }
@@ -1404,7 +1401,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.LIGHTING2.unitcode = SecondRockerID + 10;
 					tsen.LIGHTING2.cmnd = (SecondUpDown == 1) ? light2_sOn : light2_sOff;
 				}
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255, m_Name.c_str());
 			}
 		}
 		break;
@@ -1478,7 +1475,7 @@ bool CEnOceanESP2::ParseData()
 				tsen.RFXMETER.count2 = (BYTE)((cvalue & 0x00FF0000) >> 16);
 				tsen.RFXMETER.count3 = (BYTE)((cvalue & 0x0000FF00) >> 8);
 				tsen.RFXMETER.count4 = (BYTE)(cvalue & 0x000000FF);
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXMETER, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXMETER, nullptr, 255, nullptr);
 			}
 			else if (szST == "AMR.Electricity")
 			{
@@ -1491,7 +1488,7 @@ bool CEnOceanESP2::ParseData()
 				umeter.id4 = (BYTE)pFrame->ID_BYTE0;
 				umeter.dunit = 1;
 				umeter.fusage = (float)cvalue;
-				sDecodeRXMessage(this, (const unsigned char *)&umeter, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&umeter, nullptr, 255, nullptr);
 			}
 			else if (szST == "AMR.Gas")
 			{
@@ -1509,7 +1506,7 @@ bool CEnOceanESP2::ParseData()
 				tsen.RFXMETER.count2 = (BYTE)((cvalue & 0x00FF0000) >> 16);
 				tsen.RFXMETER.count3 = (BYTE)((cvalue & 0x0000FF00) >> 8);
 				tsen.RFXMETER.count4 = (BYTE)(cvalue & 0x000000FF);
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXMETER, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXMETER, nullptr, 255, nullptr);
 			}
 			else if (szST == "AMR.Water")
 			{
@@ -1527,7 +1524,7 @@ bool CEnOceanESP2::ParseData()
 				tsen.RFXMETER.count2 = (BYTE)((cvalue & 0x00FF0000) >> 16);
 				tsen.RFXMETER.count3 = (BYTE)((cvalue & 0x0000FF00) >> 8);
 				tsen.RFXMETER.count4 = (BYTE)(cvalue & 0x000000FF);
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXMETER, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXMETER, nullptr, 255, nullptr);
 			}
 			else if (szST.find("RoomOperatingPanel") == 0)
 			{
@@ -1581,11 +1578,11 @@ bool CEnOceanESP2::ParseData()
 					tsen.TEMP.rssi = (pFrame->ID_BYTE0 & 0xF0) >> 4;
 
 					tsen.TEMP.tempsign = (temp >= 0) ? 0 : 1;
-					int at10 = round(std::abs(temp * 10.0f));
+					int at10 = round(std::abs(temp * 10.0F));
 					tsen.TEMP.temperatureh = (BYTE)(at10 / 256);
 					at10 -= (tsen.TEMP.temperatureh * 256);
 					tsen.TEMP.temperaturel = (BYTE)(at10);
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.TEMP, nullptr, -1);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.TEMP, nullptr, -1, nullptr);
 				}
 			}
 			else if (szST == "LightSensor.01")
@@ -1626,7 +1623,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.RFXSENSOR.rssi = (pFrame->ID_BYTE0 & 0xF0) >> 4;
 					tsen.RFXSENSOR.msg1 = (BYTE)(voltage / 256);
 					tsen.RFXSENSOR.msg2 = (BYTE)(voltage - (tsen.RFXSENSOR.msg1 * 256));
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255, nullptr);
 				}
 				_tLightMeter lmeter;
 				lmeter.id1 = (BYTE)pFrame->ID_BYTE3;
@@ -1635,7 +1632,7 @@ bool CEnOceanESP2::ParseData()
 				lmeter.id4 = (BYTE)pFrame->ID_BYTE0;
 				lmeter.dunit = 1;
 				lmeter.fLux = lux;
-				sDecodeRXMessage(this, (const unsigned char *)&lmeter, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&lmeter, nullptr, 255, nullptr);
 			}
 			else if (szST.find("Temperature") == 0)
 			{
@@ -1665,8 +1662,16 @@ bool CEnOceanESP2::ParseData()
 				else if (iType == 0x19) { ScaleMax = 30; ScaleMin = 110; }
 				else if (iType == 0x1A) { ScaleMax = 40; ScaleMin = 120; }
 				else if (iType == 0x1B) { ScaleMax = 50; ScaleMin = 130; }
-				else if (iType == 0x20) { ScaleMax = -10; ScaleMin = 41.2f; }
-				else if (iType == 0x30) { ScaleMax = -40; ScaleMin = 62.3f; }
+				else if (iType == 0x20)
+				{
+					ScaleMax = -10;
+					ScaleMin = 41.2F;
+				}
+				else if (iType == 0x30)
+				{
+					ScaleMax = -40;
+					ScaleMin = 62.3F;
+				}
 
 				float temp;
 				if (iType < 0x20)
@@ -1684,11 +1689,11 @@ bool CEnOceanESP2::ParseData()
 				tsen.TEMP.rssi = (pFrame->ID_BYTE0 & 0xF0) >> 4;
 
 				tsen.TEMP.tempsign = (temp >= 0) ? 0 : 1;
-				int at10 = round(std::abs(temp * 10.0f));
+				int at10 = round(std::abs(temp * 10.0F));
 				tsen.TEMP.temperatureh = (BYTE)(at10 / 256);
 				at10 -= (tsen.TEMP.temperatureh * 256);
 				tsen.TEMP.temperaturel = (BYTE)(at10);
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.TEMP, nullptr, -1);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.TEMP, nullptr, -1, nullptr);
 			}
 			else if (szST == "TempHum")
 			{
@@ -1711,13 +1716,13 @@ bool CEnOceanESP2::ParseData()
 				tsen.TEMP_HUM.id2 = pFrame->ID_BYTE1;
 				tsen.TEMP_HUM.battery_level = 9;
 				tsen.TEMP_HUM.tempsign = (temp >= 0) ? 0 : 1;
-				int at10 = round(std::abs(temp * 10.0f));
+				int at10 = round(std::abs(temp * 10.0F));
 				tsen.TEMP_HUM.temperatureh = (BYTE)(at10 / 256);
 				at10 -= (tsen.TEMP_HUM.temperatureh * 256);
 				tsen.TEMP_HUM.temperaturel = (BYTE)(at10);
 				tsen.TEMP_HUM.humidity = (BYTE)hum;
 				tsen.TEMP_HUM.humidity_status = Get_Humidity_Level(tsen.TEMP_HUM.humidity);
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.TEMP_HUM, nullptr, -1);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.TEMP_HUM, nullptr, -1, nullptr);
 			}
 			else if (szST == "OccupancySensor.01")
 			{
@@ -1729,7 +1734,7 @@ bool CEnOceanESP2::ParseData()
 					if (pFrame->DATA_BYTE0 & 1)
 					{
 						//Voltage supported
-						float voltage = GetValueRange(pFrame->DATA_BYTE3, 5.0f, 0, 250, 0);
+						float voltage = GetValueRange(pFrame->DATA_BYTE3, 5.0F, 0, 250, 0);
 						memset(&tsen, 0, sizeof(RBUF));
 						tsen.RFXSENSOR.packetlength = sizeof(tsen.RFXSENSOR) - 1;
 						tsen.RFXSENSOR.packettype = pTypeRFXSensor;
@@ -1739,7 +1744,7 @@ bool CEnOceanESP2::ParseData()
 						tsen.RFXSENSOR.rssi = (pFrame->ID_BYTE0 & 0xF0) >> 4;
 						tsen.RFXSENSOR.msg1 = (BYTE)(voltage / 256);
 						tsen.RFXSENSOR.msg2 = (BYTE)(voltage - (tsen.RFXSENSOR.msg1 * 256));
-						sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255);
+						sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255, nullptr);
 					}
 
 					bool bPIROn = (pFrame->DATA_BYTE1 > 127);
@@ -1757,7 +1762,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.LIGHTING2.rssi = 12;
 					tsen.LIGHTING2.unitcode = 1;
 					tsen.LIGHTING2.cmnd = (bPIROn) ? light2_sOn : light2_sOff;
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255, m_Name.c_str());
 				}
 				else {
 					//Error code
@@ -1770,7 +1775,7 @@ bool CEnOceanESP2::ParseData()
 				{
 					RBUF tsen;
 
-					float voltage = GetValueRange(pFrame->DATA_BYTE3, 5.0f, 0, 250, 0);
+					float voltage = GetValueRange(pFrame->DATA_BYTE3, 5.0F, 0, 250, 0);
 					memset(&tsen, 0, sizeof(RBUF));
 					tsen.RFXSENSOR.packetlength = sizeof(tsen.RFXSENSOR) - 1;
 					tsen.RFXSENSOR.packettype = pTypeRFXSensor;
@@ -1780,7 +1785,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.RFXSENSOR.rssi = (pFrame->ID_BYTE0 & 0xF0) >> 4;
 					tsen.RFXSENSOR.msg1 = (BYTE)(voltage / 256);
 					tsen.RFXSENSOR.msg2 = (BYTE)(voltage - (tsen.RFXSENSOR.msg1 * 256));
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255, nullptr);
 
 					bool bPIROn = (pFrame->DATA_BYTE0 & 0x80) != 0;
 					memset(&tsen, 0, sizeof(RBUF));
@@ -1797,7 +1802,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.LIGHTING2.rssi = 12;
 					tsen.LIGHTING2.unitcode = 1;
 					tsen.LIGHTING2.cmnd = (bPIROn) ? light2_sOn : light2_sOff;
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255, m_Name.c_str());
 				}
 				else {
 					//Error code
@@ -1810,7 +1815,7 @@ bool CEnOceanESP2::ParseData()
 				{
 					RBUF tsen;
 
-					float voltage = GetValueRange(pFrame->DATA_BYTE3, 5.0f, 0, 250, 0);
+					float voltage = GetValueRange(pFrame->DATA_BYTE3, 5.0F, 0, 250, 0);
 					memset(&tsen, 0, sizeof(RBUF));
 					tsen.RFXSENSOR.packetlength = sizeof(tsen.RFXSENSOR) - 1;
 					tsen.RFXSENSOR.packettype = pTypeRFXSensor;
@@ -1820,7 +1825,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.RFXSENSOR.rssi = (pFrame->ID_BYTE0 & 0xF0) >> 4;
 					tsen.RFXSENSOR.msg1 = (BYTE)(voltage / 256);
 					tsen.RFXSENSOR.msg2 = (BYTE)(voltage - (tsen.RFXSENSOR.msg1 * 256));
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.RFXSENSOR, nullptr, 255, nullptr);
 
 					int lux = (pFrame->DATA_BYTE2 << 2) | (pFrame->DATA_BYTE1 >> 6);
 					if (lux > 1000)
@@ -1832,7 +1837,7 @@ bool CEnOceanESP2::ParseData()
 					lmeter.id4 = (BYTE)pFrame->ID_BYTE0;
 					lmeter.dunit = 1;
 					lmeter.fLux = (float)lux;
-					sDecodeRXMessage(this, (const unsigned char *)&lmeter, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&lmeter, nullptr, 255, nullptr);
 
 					bool bPIROn = (pFrame->DATA_BYTE0 & 0x80) != 0;
 					memset(&tsen, 0, sizeof(RBUF));
@@ -1849,7 +1854,7 @@ bool CEnOceanESP2::ParseData()
 					tsen.LIGHTING2.rssi = 12;
 					tsen.LIGHTING2.unitcode = 1;
 					tsen.LIGHTING2.cmnd = (bPIROn) ? light2_sOn : light2_sOff;
-					sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255);
+					sDecodeRXMessage(this, (const unsigned char *)&tsen.LIGHTING2, nullptr, 255, m_Name.c_str());
 				}
 				else {
 					//Error code

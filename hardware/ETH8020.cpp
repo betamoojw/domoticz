@@ -32,7 +32,7 @@ bool CETH8020::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CETH8020::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted=true;
 	sOnConnected(this);
@@ -170,7 +170,7 @@ void CETH8020::UpdateSwitch(const unsigned char Idx, const uint8_t SubUnit, cons
 	lcmd.LIGHTING2.level = level;
 	lcmd.LIGHTING2.filler = 0;
 	lcmd.LIGHTING2.rssi = 12;
-	sDecodeRXMessage(this, (const unsigned char *)&lcmd.LIGHTING2, defaultname.c_str(), 255);
+	sDecodeRXMessage(this, (const unsigned char *)&lcmd.LIGHTING2, defaultname.c_str(), 255, m_Name.c_str());
 }
 
 void CETH8020::GetMeterDetails()
@@ -243,9 +243,9 @@ void CETH8020::GetMeterDetails()
 				if (pos1 != std::string::npos)
 				{
 					int lValue = atoi(tmpstr.substr(0, pos1).c_str());
-					float voltage = (float)(5.0f / 1023.0f)*lValue;
-					if (voltage > 5.0f)
-						voltage = 5.0f;
+					float voltage = (float)(5.0F / 1023.0F) * lValue;
+					if (voltage > 5.0F)
+						voltage = 5.0F;
 					std::stringstream sstr;
 					sstr << "Voltage " << Idx;
 					SendVoltageSensor(0, (uint8_t)Idx, 255, voltage, sstr.str());

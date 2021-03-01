@@ -136,7 +136,7 @@ bool GoodweAPI::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&GoodweAPI::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted=true;
 	sOnConnected(this);
@@ -180,15 +180,13 @@ bool GoodweAPI::WriteToHardware(const char* /*pdata*/, const unsigned char /*len
 
 void GoodweAPI::SendCurrentSensor(const int NodeID, const uint8_t ChildID, const int /*BatteryLevel*/, const float Amp, const std::string &defaultname)
 {
-
-        _tGeneralDevice gDevice;
-        gDevice.subtype = sTypeCurrent;
-        gDevice.id = ChildID;
-        gDevice.intval1 = (NodeID << 8) | ChildID;
-        gDevice.floatval1 = Amp;
-        sDecodeRXMessage(this, (const unsigned char *)&gDevice, defaultname.c_str(), 255);
+	_tGeneralDevice gDevice;
+	gDevice.subtype = sTypeCurrent;
+	gDevice.id = ChildID;
+	gDevice.intval1 = (NodeID << 8) | ChildID;
+	gDevice.floatval1 = Amp;
+	sDecodeRXMessage(this, (const unsigned char *)&gDevice, defaultname.c_str(), 255, nullptr);
 }
-
 
 int GoodweAPI::getSunRiseSunSetMinutes(const bool bGetSunRise)
 {
@@ -466,13 +464,15 @@ void GoodweAPI::ParseDevice(const Json::Value &device, const std::string &sStati
 
 	// Send data for L2 and L3 only when we detect a voltage
 
-	if (fVoltagePhase2 > 0.1f) {
+	if (fVoltagePhase2 > 0.1F)
+	{
 		SendVoltageSensor(NodeID, ChildID + IDX_VOLT_L2, 255, fVoltagePhase2, 
 			sStationName + " " + sDeviceSerial + " Mains L2");
 		SendCurrentSensor(NodeID, (uint8_t)ChildID + IDX_CUR_L2, 255, fCurrentPhase2,
 			sStationName + " " + sDeviceSerial + " Mains L2");
 	}
-	if (fVoltagePhase3 > 0.1f) {
+	if (fVoltagePhase3 > 0.1F)
+	{
 		SendVoltageSensor(NodeID, ChildID + IDX_VOLT_L3, 255, fVoltagePhase3, 
 			sStationName + " " + sDeviceSerial + " Mains L3");
 		SendCurrentSensor(NodeID, (uint8_t)ChildID + IDX_CUR_L3, 255, fCurrentPhase3,
@@ -486,7 +486,8 @@ void GoodweAPI::ParseDevice(const Json::Value &device, const std::string &sStati
 
 	// Send data for string 2 only when we detect a voltage
 
-	if (fVoltageString2 > 0.1f) {
+	if (fVoltageString2 > 0.1F)
+	{
 		SendVoltageSensor(NodeID, ChildID + IDX_VOLT_S2, 255, fVoltageString2, 
 			sStationName + " " + sDeviceSerial + "Input string 2");
 		SendCurrentSensor(NodeID, (uint8_t)ChildID + IDX_CUR_S2, 255, fCurrentString2,

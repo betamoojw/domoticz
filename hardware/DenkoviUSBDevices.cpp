@@ -5,8 +5,6 @@
 #include "../main/localtime_r.h"
 #include "../main/mainworker.h"
 
-using namespace boost::placeholders;
-
 #define MAX_POLL_INTERVAL 3600*1000
 
 #define DAE_IO_TYPE_RELAY		2
@@ -65,11 +63,11 @@ bool CDenkoviUSBDevices::StartHardware()
 		return false;
 	}
 
-	m_thread = std::make_shared<std::thread>(&CDenkoviUSBDevices::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 
 	m_bIsStarted = true;
-	setReadCallback(boost::bind(&CDenkoviUSBDevices::readCallBack, this, _1, _2));
-	
+	setReadCallback([this](auto d, auto l) { readCallBack(d, l); });
+
 	sOnConnected(this);
 	return true;
 }
@@ -94,10 +92,10 @@ void CDenkoviUSBDevices::readCallBack(const char * data, size_t len)
 			}
 			for (uint8_t ii = 1; ii < 9; ii++) {
 				//z = (firstEight >> (8 - ii)) & 0x01;
-				SendSwitch(DAE_IO_TYPE_RELAY, ii, 255, (((firstEight >> (8 - ii)) & 0x01) != 0) ? true : false, 0, "Relay " + std::to_string(ii));
+				SendSwitch(DAE_IO_TYPE_RELAY, ii, 255, (((firstEight >> (8 - ii)) & 0x01) != 0) ? true : false, 0, "Relay " + std::to_string(ii), m_Name);
 			}
 			for (uint8_t ii = 1; ii < 9; ii++)
-				SendSwitch(DAE_IO_TYPE_RELAY, ii + 8, 255, ((secondEight >> (8 - ii) & 0x01) != 0) ? true : false, 0, "Relay " + std::to_string(8+ii));
+				SendSwitch(DAE_IO_TYPE_RELAY, ii + 8, 255, ((secondEight >> (8 - ii) & 0x01) != 0) ? true : false, 0, "Relay " + std::to_string(8 + ii), m_Name);
 		} 
 		break;
 	}

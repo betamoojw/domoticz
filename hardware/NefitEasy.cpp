@@ -133,7 +133,7 @@ bool CNefitEasy::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CNefitEasy::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted=true;
 	sOnConnected(this);
@@ -442,13 +442,13 @@ bool CNefitEasy::GetStatusDetails()
 	{
 		tmpstr = root2["UMD"].asString();
 		m_bClockMode = (tmpstr == "clock");
-		SendSwitch(1, 1, -1, m_bClockMode, 0, "Clock Mode");
+		SendSwitch(1, 1, -1, m_bClockMode, 0, "Clock Mode", m_Name);
 	}
 	if (!root2["DHW"].empty())
 	{
 		tmpstr = root2["DHW"].asString();
 		bool bIsOn = (tmpstr != "off");
-		SendSwitch(2, 1, -1, bIsOn, 0, "Hot Water");
+		SendSwitch(2, 1, -1, bIsOn, 0, "Hot Water", m_Name);
 	}
 
 	return true;
@@ -756,14 +756,14 @@ bool CNefitEasy::GetGasUsage()
 	}
 	float yeargas = root["value"].asFloat();
 	//convert from kWh to m3
-	yeargas *= (0.12307692f*1000.0f);
+	yeargas *= (0.12307692F * 1000.0F);
 	uint32_t gusage = (uint32_t)yeargas;
 	if (gusage < m_lastgasusage)
 	{
 
 	}
 	m_p1gas.gasusage = gusage;
-	sDecodeRXMessage(this, (const unsigned char *)&m_p1gas, "Gas", 255);
+	sDecodeRXMessage(this, (const unsigned char *)&m_p1gas, "Gas", 255, nullptr);
 	return true;
 }
 

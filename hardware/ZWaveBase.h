@@ -76,6 +76,10 @@ class ZWaveBase : public CDomoticzHardwareBase
 		float floatValue;
 		int intvalue;
 
+		time_t lastSendValue = 0;
+		float prevFloatValue = 0;
+		int prevIntValue = 0;
+
 		// battery
 		int batValue;
 
@@ -96,7 +100,7 @@ class ZWaveBase : public CDomoticzHardwareBase
 		{
 			sequence_number = 1;
 			nodeID = (uint8_t)-1;
-			scaleMultiply = 1.0f;
+			scaleMultiply = 1.0F;
 			isListening = false;
 			hasWakeup = false;
 			batValue = 255;
@@ -143,13 +147,11 @@ class ZWaveBase : public CDomoticzHardwareBase
 
       private:
 	void Do_Work();
-	void SendDevice2Domoticz(const _tZWaveDevice *pDevice);
+	void SendDevice2Domoticz(_tZWaveDevice *pDevice);
 	void SendSwitchIfNotExists(const _tZWaveDevice *pDevice);
 
-	_tZWaveDevice *FindDevice(uint8_t nodeID, int instanceID, int indexID);
-	_tZWaveDevice *FindDevice(uint8_t nodeID, int instanceID, int indexID, _eZWaveDeviceType devType);
-	_tZWaveDevice *FindDevice(uint8_t nodeID, int instanceID, int indexID, int CommandClassID, _eZWaveDeviceType devType);
-	_tZWaveDevice *FindDeviceEx(uint8_t nodeID, int instanceID, _eZWaveDeviceType devType);
+	_tZWaveDevice *FindDevice(uint8_t nodeID, int instanceID, _eZWaveDeviceType devType);
+	_tZWaveDevice *FindDevice(uint8_t nodeID, int instanceID, uint8_t CommandClassID, _eZWaveDeviceType devType);
 
 	std::string GenerateDeviceStringID(const _tZWaveDevice *pDevice);
 	void InsertDevice(_tZWaveDevice device);

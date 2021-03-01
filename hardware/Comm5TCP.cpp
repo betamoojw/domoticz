@@ -57,7 +57,7 @@ bool Comm5TCP::StartHardware()
 	m_bIsStarted = true;
 
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&Comm5TCP::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 
 	Log(LOG_STATUS, "Started");
@@ -124,7 +124,7 @@ void Comm5TCP::processSensorData(const std::string& line)
 	for (int i = 0; i < 16; ++i) {
 		bool on = (sensorbitfield & (1 << i)) != 0 ? true : false;
 		if (((lastKnownSensorState & (1 << i)) ^ (sensorbitfield & (1 << i))) || initSensorData) {
-			SendSwitchUnchecked((i + 1) << 8, 1, 255, on, 0, "Sensor " + std::to_string(i + 1));
+			SendSwitchUnchecked((i + 1) << 8, 1, 255, on, 0, "Sensor " + std::to_string(i + 1), m_Name);
 		}
 	}
 	lastKnownSensorState = sensorbitfield;
@@ -148,7 +148,7 @@ void Comm5TCP::ParseData(const unsigned char* data, const size_t len)
 			unsigned int relaybitfield = ::strtol(tokens[1].c_str(), nullptr, 16);
 			for (int i = 0; i < 16; ++i) {
 				bool on = (relaybitfield & (1 << i)) != 0 ? true : false;
-				SendSwitch(i + 1, 1, 255, on, 0, "Relay " + std::to_string(i + 1));
+				SendSwitch(i + 1, 1, 255, on, 0, "Relay " + std::to_string(i + 1), m_Name);
 			}
 		}
 		else if (c5_startsWith(line, "210") && (!c5_startsWith(line, "210 OK"))) {

@@ -34,7 +34,7 @@ bool CSterbox::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CSterbox::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted=true;
 	sOnConnected(this);
@@ -175,7 +175,7 @@ void CSterbox::UpdateSwitch(const unsigned char Idx, const int SubUnit, const bo
 	lcmd.LIGHTING2.level = level;
 	lcmd.LIGHTING2.filler = 0;
 	lcmd.LIGHTING2.rssi = 12;
-	sDecodeRXMessage(this, (const unsigned char *)&lcmd.LIGHTING2, defaultname.c_str(), 255);
+	sDecodeRXMessage(this, (const unsigned char *)&lcmd.LIGHTING2, defaultname.c_str(), 255, m_Name.c_str());
 }
 
 void CSterbox::GetMeterDetails()

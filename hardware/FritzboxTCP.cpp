@@ -53,7 +53,7 @@ bool FritzboxTCP::StartHardware()
 	m_bIsStarted=true;
 
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&FritzboxTCP::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	return (m_thread != nullptr);
 }
@@ -222,7 +222,7 @@ void FritzboxTCP::UpdateSwitch(const unsigned char Idx, const uint8_t SubUnit, c
 	lcmd.LIGHTING2.level = level;
 	lcmd.LIGHTING2.filler = 0;
 	lcmd.LIGHTING2.rssi = 12;
-	sDecodeRXMessage(this, (const unsigned char *)&lcmd.LIGHTING2, defaultname.c_str(), 255);
+	sDecodeRXMessage(this, (const unsigned char *)&lcmd.LIGHTING2, defaultname.c_str(), 255, m_Name.c_str());
 }
 
 void FritzboxTCP::ParseLine()

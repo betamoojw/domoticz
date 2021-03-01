@@ -102,7 +102,7 @@ bool CNetatmo::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CNetatmo::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	m_bIsStarted = true;
 	sOnConnected(this);
@@ -340,7 +340,7 @@ int CNetatmo::GetBatteryLevel(const std::string &ModuleType, int battery_percent
 
 		//range = 1000
 		batValue = 3200 - battery_percent;
-		batValue = 100 - int((100.0f / 1000.0f)*float(batValue));
+		batValue = 100 - int((100.0F / 1000.0F) * float(batValue));
 	}
 	else if (ModuleType == "NATherm1")
 	{
@@ -351,7 +351,7 @@ int CNetatmo::GetBatteryLevel(const std::string &ModuleType, int battery_percent
 
 		//range = 1100
 		batValue = 4100 - battery_percent;
-		batValue = 100 - int((100.0f / 1100.0f)*float(batValue));
+		batValue = 100 - int((100.0F / 1100.0F) * float(batValue));
 	}
 
 	return batValue;
@@ -480,8 +480,8 @@ bool CNetatmo::ParseDashboard(const Json::Value &root, const int DevIdx, const i
 			bHaveWind = true;
 			wind_angle = root["WindAngle"].asInt();
 			//wind_gust_angle = root["GustAngle"].asInt();
-			wind_strength = root["WindStrength"].asFloat() / 3.6f;
-			wind_gust = root["GustStrength"].asFloat() / 3.6f;
+			wind_strength = root["WindStrength"].asFloat() / 3.6F;
+			wind_gust = root["GustStrength"].asFloat() / 3.6F;
 		}
 	}
 
@@ -902,7 +902,7 @@ bool CNetatmo::ParseNetatmoGetResponse(const std::string &sResult, const _eNetat
 											std::string setpoint_mode = module["setpoint"]["setpoint_mode"].asString();
 											bool bIsAway = (setpoint_mode == "away");
 											std::string aName = "Away " + mname;
-											SendSwitch(3, (uint8_t)(1 + iDevIndex), 255, bIsAway, 0, aName);
+											SendSwitch(3, (uint8_t)(1 + iDevIndex), 255, bIsAway, 0, aName, m_Name);
 										}
 										//Check if setpoint was just set, and if yes, overrule the previous setpoint
 										if (!module["setpoint"]["setpoint_temp"].empty())
@@ -1358,7 +1358,7 @@ bool CNetatmo::ParseHomeStatus(const std::string &sResult)
 				{
 					std::string aName = "Status";
 					bool bIsActive = (module["boiler_status"].asString() == "true");
-					SendSwitch((moduleID & 0x00FFFFFF) | 0x10000000, 1, 255, bIsActive, 0, aName);
+					SendSwitch((moduleID & 0x00FFFFFF) | 0x10000000, 1, 255, bIsActive, 0, aName, m_Name);
 				}
 				if (!module["battery_level"].empty())
 				{
@@ -1369,13 +1369,13 @@ bool CNetatmo::ParseHomeStatus(const std::string &sResult)
 				{
 					float rf_strength = module["rf_strength"].asFloat();
 					// 90=low, 60=highest
-					if (rf_strength > 90.0f)
-						rf_strength = 90.0f;
-					if (rf_strength < 60.0f)
-						rf_strength = 60.0f;
+					if (rf_strength > 90.0F)
+						rf_strength = 90.0F;
+					if (rf_strength < 60.0F)
+						rf_strength = 60.0F;
 
 					//range is 30
-					float mrf_percentage = (100.0f / 30.0f)*float((90 - rf_strength));
+					float mrf_percentage = (100.0F / 30.0F) * float((90 - rf_strength));
 					if (mrf_percentage != 0)
 					{
 						std::string pName = moduleName + " RF (+Batt)";
@@ -1431,7 +1431,7 @@ bool CNetatmo::ParseHomeStatus(const std::string &sResult)
 					std::string setpoint_mode = room["therm_setpoint_mode"].asString();
 					bool bIsAway = (setpoint_mode == "away");
 					std::string aName = "Away " + roomName;
-					SendSwitch((roomID & 0x00FFFFFF) | 0x01000000, 1, 255, bIsAway, 0, aName);
+					SendSwitch((roomID & 0x00FFFFFF) | 0x01000000, 1, 255, bIsAway, 0, aName, m_Name);
 				}
 			}
 			iDevIndex++;

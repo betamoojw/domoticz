@@ -69,7 +69,7 @@ bool CWunderground::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CWunderground::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	if (!m_thread)
 		return false;
@@ -359,14 +359,14 @@ void CWunderground::GetMeterDetails()
 
 		tsen.WIND.av_speedh=0;
 		tsen.WIND.av_speedl=0;
-		int sw=round(windspeed_ms*10.0f);
+		int sw = round(windspeed_ms * 10.0F);
 		tsen.WIND.av_speedh=(BYTE)(sw/256);
 		sw-=(tsen.WIND.av_speedh*256);
 		tsen.WIND.av_speedl=(BYTE)(sw);
 
 		tsen.WIND.gusth=0;
 		tsen.WIND.gustl=0;
-		int gw=round(windgust_ms*10.0f);
+		int gw = round(windgust_ms * 10.0F);
 		tsen.WIND.gusth=(BYTE)(gw/256);
 		gw-=(tsen.WIND.gusth*256);
 		tsen.WIND.gustl=(BYTE)(gw);
@@ -378,18 +378,18 @@ void CWunderground::GetMeterDetails()
 		tsen.WIND.temperaturel=0;
 
 		tsen.WIND.tempsign=(wind_temp>=0)?0:1;
-		int at10=round(std::abs(wind_temp*10.0f));
+		int at10 = round(std::abs(wind_temp * 10.0F));
 		tsen.WIND.temperatureh=(BYTE)(at10/256);
 		at10-=(tsen.WIND.temperatureh*256);
 		tsen.WIND.temperaturel=(BYTE)(at10);
 
 		tsen.WIND.chillsign=(wind_chill>=0)?0:1;
-		at10=round(std::abs(wind_chill*10.0f));
+		at10 = round(std::abs(wind_chill * 10.0F));
 		tsen.WIND.chillh=(BYTE)(at10/256);
 		at10-=(tsen.WIND.chillh*256);
 		tsen.WIND.chilll=(BYTE)(at10);
 
-		sDecodeRXMessage(this, (const unsigned char *)&tsen.WIND, nullptr, 255);
+		sDecodeRXMessage(this, (const unsigned char *)&tsen.WIND, nullptr, 255, nullptr);
 	}
 
 	//UV
@@ -411,7 +411,7 @@ void CWunderground::GetMeterDetails()
 		if ((root["metric_si"]["precipTotal"] != "N/A") && (root["metric_si"]["precipTotal"] != "--"))
 		{
 			float RainCount = static_cast<float>(atof(root["metric_si"]["precipTotal"].asString().c_str()));
-			if ((RainCount != -9999.00f) && (RainCount >= 0.00f))
+			if ((RainCount != -9999.00F) && (RainCount >= 0.00F))
 			{
 				RBUF tsen;
 				memset(&tsen, 0, sizeof(RBUF));
@@ -431,9 +431,9 @@ void CWunderground::GetMeterDetails()
 					if ((root["metric_si"]["precipRate"] != "N/A") && (root["metric_si"]["precipRate"] != "--"))
 					{
 						float rainrateph = static_cast<float>(atof(root["metric_si"]["precipRate"].asString().c_str()));
-						if (rainrateph != -9999.00f)
+						if (rainrateph != -9999.00F)
 						{
-							int at10 = round(std::abs(rainrateph*100.0f));
+							int at10 = round(std::abs(rainrateph * 100.0F));
 							tsen.RAIN.rainrateh = (BYTE)(at10 / 256);
 							at10 -= (tsen.RAIN.rainrateh * 256);
 							tsen.RAIN.rainratel = (BYTE)(at10);
@@ -441,13 +441,13 @@ void CWunderground::GetMeterDetails()
 					}
 				}
 
-				int tr10 = int((float(RainCount)*10.0f));
+				int tr10 = int((float(RainCount) * 10.0F));
 				tsen.RAIN.raintotal1 = 0;
 				tsen.RAIN.raintotal2 = (BYTE)(tr10 / 256);
 				tr10 -= (tsen.RAIN.raintotal2 * 256);
 				tsen.RAIN.raintotal3 = (BYTE)(tr10);
 
-				sDecodeRXMessage(this, (const unsigned char *)&tsen.RAIN, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&tsen.RAIN, nullptr, 255, nullptr);
 			}
 		}
 	}
@@ -463,7 +463,7 @@ void CWunderground::GetMeterDetails()
 				_tGeneralDevice gdevice;
 				gdevice.subtype = sTypeVisibility;
 				gdevice.floatval1 = visibility;
-				sDecodeRXMessage(this, (const unsigned char *)&gdevice, nullptr, 255);
+				sDecodeRXMessage(this, (const unsigned char *)&gdevice, nullptr, 255, nullptr);
 			}
 		}
 	}
@@ -472,12 +472,12 @@ void CWunderground::GetMeterDetails()
 	if (root["solarRadiation"].empty() == false)
 	{
 		float radiation = static_cast<float>(atof(root["solarRadiation"].asString().c_str()));
-		if (radiation >= 0.0f)
+		if (radiation >= 0.0F)
 		{
 			_tGeneralDevice gdevice;
 			gdevice.subtype = sTypeSolarRadiation;
 			gdevice.floatval1 = radiation;
-			sDecodeRXMessage(this, (const unsigned char *)&gdevice, nullptr, 255);
+			sDecodeRXMessage(this, (const unsigned char *)&gdevice, nullptr, 255, nullptr);
 		}
 	}
 }

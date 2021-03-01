@@ -173,9 +173,9 @@ bool CZiBlueBase::WriteToHardware(const char *pdata, const unsigned char length)
 		// check setlevel command
 		if (pSwitch->cmnd == gswitch_sSetLevel) {
 			// Get device level to set
-			float fvalue = (15.0f / 100.0f)*float(pSwitch->level);
-			if (fvalue > 15.0f)
-				fvalue = 15.0f; //99 is fully on
+			float fvalue = (15.0F / 100.0F) * float(pSwitch->level);
+			if (fvalue > 15.0F)
+				fvalue = 15.0F; // 99 is fully on
 			int svalue = round(fvalue);
 			//_log.Log(LOG_ERROR, "RFLink: level: %d", svalue);
 			char buffer[50] = { 0 };
@@ -310,7 +310,7 @@ bool CZiBlueBase::SendSwitchInt(const int ID, const int switchunit, const int Ba
 	gswitch.battery_level = BatteryLevel;
 	gswitch.rssi = 12;
 	gswitch.seqnbr = 0;
-	sDecodeRXMessage(this, (const unsigned char *)&gswitch, nullptr, BatteryLevel);
+	sDecodeRXMessage(this, (const unsigned char *)&gswitch, nullptr, BatteryLevel, m_Name.c_str());
 	return true;
 }
 
@@ -449,7 +449,7 @@ bool CZiBlueBase::ParseBinary(const uint8_t SDQ, const uint8_t *data, size_t len
 		int dlen = len - 8;
 		REGULAR_INCOMING_RF_TO_BINARY_USB_FRAME_HEADER *pIncomming = (REGULAR_INCOMING_RF_TO_BINARY_USB_FRAME_HEADER*)data;
 #ifdef DEBUG_ZIBLUE
-		_log.Log(LOG_NORM, "ZiBlue: frameType: %d, cluster: %d, dataFlag: %d (%s Mhz)", pIncomming->frameType, pIncomming->cluster, pIncomming->dataFlag, (pIncomming->dataFlag == 0) ? "433" : "868");
+		_log.Log(LOG_NORM, "ZiBlue: frameType: %d, cluster: %d, dataFlag: %d (%s MHz)", pIncomming->frameType, pIncomming->cluster, pIncomming->dataFlag, (pIncomming->dataFlag == 0) ? "433" : "868");
 		_log.Log(LOG_NORM, "ZiBlue: rfLevel: %d dBm, floorNoise:: %d dBm, rfQuality: %d", pIncomming->rfLevel, pIncomming->floorNoise, pIncomming->rfQuality);
 		_log.Log(LOG_NORM, "ZiBlue: protocol: %d (%s), infoType: %d", pIncomming->protocol, szZiBlueProtocol(pIncomming->protocol), pIncomming->infoType);
 #endif
@@ -584,9 +584,9 @@ bool CZiBlueBase::ParseBinary(const uint8_t SDQ, const uint8_t *data, size_t len
 					pSen->hygro);
 #endif
 				if (pSen->hygro > 0)
-					SendTempHumSensor(pSen->idPHY^pSen->idChannel, (pSen->qualifier & 0x01) ? 0 : 100, float(pSen->temp) / 10.0f, pSen->hygro, "Temp+Hum");
+					SendTempHumSensor(pSen->idPHY ^ pSen->idChannel, (pSen->qualifier & 0x01) ? 0 : 100, float(pSen->temp) / 10.0F, pSen->hygro, "Temp+Hum");
 				else
-					SendTempSensor(pSen->idPHY^pSen->idChannel, (pSen->qualifier & 0x01) ? 0 : 100, float(pSen->temp) / 10.0f, "Temp");
+					SendTempSensor(pSen->idPHY ^ pSen->idChannel, (pSen->qualifier & 0x01) ? 0 : 100, float(pSen->temp) / 10.0F, "Temp");
 			}
 			break;
 		case INFOS_TYPE5:
@@ -605,7 +605,7 @@ bool CZiBlueBase::ParseBinary(const uint8_t SDQ, const uint8_t *data, size_t len
 					pSen->pressure
 					);
 #endif
-				SendTempHumBaroSensor(pSen->idPHY^pSen->idChannel,(pSen->qualifier & 0x01) ? 0 : 100, float(pSen->temp) / 10.0f, pSen->hygro, pSen->pressure, 0, "Temp+Hum+Baro");
+				SendTempHumBaroSensor(pSen->idPHY ^ pSen->idChannel, (pSen->qualifier & 0x01) ? 0 : 100, float(pSen->temp) / 10.0F, pSen->hygro, pSen->pressure, 0, "Temp+Hum+Baro");
 			}
 			break;
 		case INFOS_TYPE6:

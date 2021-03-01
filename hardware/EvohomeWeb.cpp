@@ -179,7 +179,7 @@ bool CEvohomeWeb::StartHardware()
 	if (m_username.empty() || m_password.empty())
 		return false;
 	Init();
-	m_thread = std::make_shared<std::thread>(&CEvohomeWeb::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	if (!m_thread)
 		return false;
@@ -503,7 +503,7 @@ void CEvohomeWeb::DecodeControllerMode(temperatureControlSystem* tcs)
 	RFX_SETID3(ID, tsen.id1, tsen.id2, tsen.id3);
 	tsen.mode = 0; // web API does not support temp override of controller mode
 	tsen.status = sysmode;
-	sDecodeRXMessage(this, (const unsigned char *)&tsen, "Controller mode", -1);
+	sDecodeRXMessage(this, (const unsigned char *)&tsen, "Controller mode", -1, nullptr);
 
 	if (GetControllerName().empty() || m_updatedev)
 	{
@@ -740,7 +740,7 @@ uint8_t CEvohomeWeb::GetUnit_by_ID(unsigned long evoID)
 		{
 			int unit = atoi(result[row][0].c_str());
 			m_zones[unit] = atol(result[row][1].c_str());
-			if (m_zones[unit] == (unsigned long)(unit + 92000)) // mark manually added, unlinked zone as free
+			if (m_zones[unit] == uint64_t(unit) + 92000) // mark manually added, unlinked zone as free
 				m_zones[unit] = 0;
 		}
 		m_zones[0] = 1;

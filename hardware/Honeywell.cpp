@@ -14,22 +14,22 @@
 
 #define round(a) ( int ) ( a + .5 )
 
-const std::string HONEYWELL_DEFAULT_APIKEY = "atD3jtzXC5z4X8WPbzvo0CBqWi7S81Nh";
-const std::string HONEYWELL_DEFAULT_APISECRET = "TXDzy2aHpAJw6YiO";
-const std::string HONEYWELL_LOCATIONS_PATH = "https://api.honeywell.com/v2/locations?apikey=[apikey]";
-const std::string HONEYWELL_UPDATE_THERMOSTAT = "https://api.honeywell.com/v2/devices/thermostats/[deviceid]?apikey=[apikey]&locationId=[locationid]";
-const std::string HONEYWELL_TOKEN_PATH = "https://api.honeywell.com/oauth2/token";
+constexpr auto HONEYWELL_DEFAULT_APIKEY = "atD3jtzXC5z4X8WPbzvo0CBqWi7S81Nh";
+constexpr auto HONEYWELL_DEFAULT_APISECRET = "TXDzy2aHpAJw6YiO";
+constexpr auto HONEYWELL_LOCATIONS_PATH = "https://api.honeywell.com/v2/locations?apikey=[apikey]";
+constexpr auto HONEYWELL_UPDATE_THERMOSTAT = "https://api.honeywell.com/v2/devices/thermostats/[deviceid]?apikey=[apikey]&locationId=[locationid]";
+constexpr auto HONEYWELL_TOKEN_PATH = "https://api.honeywell.com/oauth2/token";
 
-const std::string kSetPointDesc = "Target temperature ([devicename])";
-const std::string kHeatingDesc = "Heating Mode([devicename])";
-const std::string kCoolingDesc = "Cooling Mome([devicename])";
-const std::string kHeatingStatusDesc = "Heating State ([devicename])";
-const std::string kCoolingStatusDesc = "Cooling State ([devicename])";
-const std::string kOutdoorTempDesc = "Outdoor temperature ([devicename])";
-const std::string kRoomTempDesc = "Room temperature ([devicename])";
-const std::string kAwayDesc = "Away ([name])";
-const std::string kfanRequest = "Fan Request ([devicename])";
-const std::string kcirculationFanRequest = "Circulation Fan Request ([devicename])";
+constexpr auto kSetPointDesc = "Target temperature ([devicename])";
+constexpr auto kHeatingDesc = "Heating Mode([devicename])";
+constexpr auto kCoolingDesc = "Cooling Mome([devicename])";
+constexpr auto kHeatingStatusDesc = "Heating State ([devicename])";
+constexpr auto kCoolingStatusDesc = "Cooling State ([devicename])";
+constexpr auto kOutdoorTempDesc = "Outdoor temperature ([devicename])";
+constexpr auto kRoomTempDesc = "Room temperature ([devicename])";
+constexpr auto kAwayDesc = "Away ([name])";
+constexpr auto kfanRequest = "Fan Request ([devicename])";
+constexpr auto kcirculationFanRequest = "Circulation Fan Request ([devicename])";
 
 extern http::server::CWebServerHelper m_webservers;
 
@@ -73,7 +73,7 @@ bool CHoneywell::StartHardware()
 	Init();
 	mLastMinute = -1;
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CHoneywell::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	mIsStarted = true;
 	sOnConnected(this);
@@ -277,7 +277,7 @@ void CHoneywell::GetThermostatData()
 			bool bHeating = (mode == "Heat");
 			desc = kHeatingDesc;
 			stdreplace(desc, "[devicename]", deviceName);
-			SendSwitch(10 * devNr + 3, 1, 255, bHeating, 0, desc);
+			SendSwitch(10 * devNr + 3, 1, 255, bHeating, 0, desc, m_Name);
 
 			if(bHeating){
 				temperature = (float)device["changeableValues"]["heatSetpoint"].asFloat();
@@ -296,29 +296,29 @@ void CHoneywell::GetThermostatData()
 			bool bStatus = (operationstatus == "Heat");
 			desc = kHeatingStatusDesc;
 			stdreplace(desc, "[devicename]", deviceName);
-			SendSwitch(10 * devNr + 5, 1, 255, bStatus, 0, desc);
+			SendSwitch(10 * devNr + 5, 1, 255, bStatus, 0, desc, m_Name);
 
 			//std::string operationstatus = device["operationStatus"]["mode"].asString();
 			bool bCStatus = (operationstatus == "Cool");
 			desc = kCoolingStatusDesc;
 			stdreplace(desc, "[devicename]", deviceName);
-			SendSwitch(10 * devNr + 6, 1, 255, bCStatus, 0, desc);
+			SendSwitch(10 * devNr + 6, 1, 255, bCStatus, 0, desc, m_Name);
 
 			//std::string mode = device["changeableValues"]["mode"].asString();
 			bool bCooling = (mode == "Cool");
 			desc = kCoolingDesc;
 			stdreplace(desc, "[devicename]", deviceName);
-			SendSwitch(10 * devNr + 7, 1, 255, bCooling, 0, desc);
+			SendSwitch(10 * devNr + 7, 1, 255, bCooling, 0, desc, m_Name);
 
 			bool fanRequest = device["operationStatus"]["fanRequest"].asBool();
 			desc = kfanRequest;
 			stdreplace(desc, "[devicename]", deviceName);
-			SendSwitch(10 * devNr + 8, 1, 255, fanRequest, 0, desc);
+			SendSwitch(10 * devNr + 8, 1, 255, fanRequest, 0, desc, m_Name);
 
 			bool circulationFanRequest = device["operationStatus"]["circulationFanRequest"].asBool();
 			desc = kcirculationFanRequest;
 			stdreplace(desc, "[devicename]", deviceName);
-			SendSwitch(10 * devNr + 9, 1, 255, circulationFanRequest, 0, desc);
+			SendSwitch(10 * devNr + 9, 1, 255, circulationFanRequest, 0, desc, m_Name);
 
 			devNr++;
 		}
@@ -338,7 +338,7 @@ void CHoneywell::GetThermostatData()
 			}
 			std::string desc = kAwayDesc;
 			stdreplace(desc, "[name]", location["name"].asString());
-			SendSwitch(10 * devNr + 6, 1, 255, bAway, 0, desc);
+			SendSwitch(10 * devNr + 6, 1, 255, bAway, 0, desc, m_Name);
 		}
 	}
 }
@@ -358,7 +358,7 @@ void CHoneywell::SendSetPointSensor(const unsigned char Idx, const float Temp, c
 
 	thermos.temp = Temp;
 
-	sDecodeRXMessage(this, (const unsigned char *)&thermos, defaultname.c_str(), 255);
+	sDecodeRXMessage(this, (const unsigned char *)&thermos, defaultname.c_str(), 255, nullptr);
 }
 
 //
@@ -416,11 +416,11 @@ void CHoneywell::SetPauseStatus(const int idx, bool bCommand, const int nodeID)
 	}
 	std::string desc = kHeatingDesc;
 	stdreplace(desc, "[devicename]", mDeviceList[idx]["name"].asString());
-	SendSwitch(10 * idx + 3, 1, 255, nHeat, 0, desc);
+	SendSwitch(10 * idx + 3, 1, 255, nHeat, 0, desc, m_Name);
 	
 	desc = kCoolingDesc;
 	stdreplace(desc, "[devicename]", mDeviceList[idx]["name"].asString());
-	SendSwitch(10 * idx + 7, 1, 255, nCool, 0, desc);
+	SendSwitch(10 * idx + 7, 1, 255, nCool, 0, desc, m_Name);
 	
 	if(bCommand){
 		std::string units = mDeviceList[idx]["units"].asString();

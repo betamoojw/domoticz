@@ -164,7 +164,7 @@ bool RelayNet::StartHardware()
 
 	if (m_input_count || m_relay_count)
 	{
-		m_thread = std::make_shared<std::thread>(&RelayNet::Do_Work, this);
+		m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 		SetThreadNameInt(m_thread->native_handle());
 	}
 
@@ -471,7 +471,7 @@ void RelayNet::UpdateDomoticzInput(int InputNumber, bool State)
 		m_Packet.LIGHTING2.seqnbr++;
 
 		/* send packet to Domoticz */
-		sDecodeRXMessage(this, (const unsigned char *)&m_Packet.LIGHTING2, "Input", 255);
+		sDecodeRXMessage(this, (const unsigned char *)&m_Packet.LIGHTING2, "Input", 255, m_Name.c_str());
 	}
 }
 
@@ -523,7 +523,7 @@ void RelayNet::UpdateDomoticzRelay(int RelayNumber, bool State)
 		m_Packet.LIGHTING2.seqnbr++;
 
 		/* send packet to Domoticz */
-		sDecodeRXMessage(this, (const unsigned char *)&m_Packet.LIGHTING2, "Relay", 255);
+		sDecodeRXMessage(this, (const unsigned char *)&m_Packet.LIGHTING2, "Relay", 255, m_Name.c_str());
 	}
 }
 
@@ -540,7 +540,7 @@ void RelayNet::ProcessRelaycardDump(char* Dump)
 
 	if (!m_skip_relay_update && m_relay_count && (m_poll_relays || m_setup_devices))
 	{
-		for (uint16_t i=1; i <= m_relay_count ; i++)
+		for (int i = 1; i <= m_relay_count; i++)
 		{
 			snprintf(&cTemp[0], sizeof(cTemp), "RELAYON %d", i);
 			sChkstr = cTemp;
@@ -562,7 +562,7 @@ void RelayNet::ProcessRelaycardDump(char* Dump)
 
 	if (m_input_count && (m_poll_inputs || m_setup_devices))
 	{
-		for (uint16_t i = 1; i <= m_input_count; i++)
+		for (int i = 1; i <= m_input_count; i++)
 		{
 			snprintf(&cTemp[0], sizeof(cTemp), "IH %d", i);
 			sChkstr = cTemp;

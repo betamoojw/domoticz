@@ -104,7 +104,7 @@ bool CBuienRadar::StartHardware()
 
 	Init();
 	//Start worker thread
-	m_thread = std::make_shared<std::thread>(&CBuienRadar::Do_Work, this);
+	m_thread = std::make_shared<std::thread>([this] { Do_Work(); });
 	SetThreadNameInt(m_thread->native_handle());
 	if (!m_thread)
 		return false;
@@ -388,7 +388,7 @@ void CBuienRadar::GetMeterDetails()
 		}
 	}
 
-	float temp = -999.9f;
+	float temp = -999.9F;
 	int humidity = 0;
 	float barometric = 0;
 	uint8_t barometric_forecast = wsbaroforecast_unknown;
@@ -407,7 +407,7 @@ void CBuienRadar::GetMeterDetails()
 		if (barometric < 1000)
 		{
 			barometric_forecast = wsbaroforecast_rain;
-			if (temp != -999.9f)
+			if (temp != -999.9F)
 			{
 				if (temp <= 0)
 					barometric_forecast = wsbaroforecast_snow;
@@ -420,22 +420,15 @@ void CBuienRadar::GetMeterDetails()
 		else
 			barometric_forecast = wsbaroforecast_sunny;
 	}
-	if (
-		(temp != -999.9f)
-		&& (humidity != 0)
-		&& (barometric != 0)
-		)
+	if ((temp != -999.9F) && (humidity != 0) && (barometric != 0))
 	{
 		SendTempHumBaroSensorFloat(1, 255, temp, humidity, barometric, barometric_forecast, "TempHumBaro");
 	}
-	else if (
-		(temp != -999.9f)
-		&& (humidity != 0)
-		)
+	else if ((temp != -999.9F) && (humidity != 0))
 	{
 		SendTempHumSensor(1, 255, temp, humidity, "TempHum");
 	}
-	else if (temp != -999.9f)
+	else if (temp != -999.9F)
 	{
 		SendTempSensor(1, 255, temp, "Temp");
 	}
@@ -470,7 +463,7 @@ void CBuienRadar::GetMeterDetails()
 		else
 			wind_chill = temp;
 
-		SendWind(1, 255, wind_direction, wind_speed, wind_gusts, temp, wind_chill, temp != -999.9f, true, "Wind");
+		SendWind(1, 255, wind_direction, wind_speed, wind_gusts, temp, wind_chill, temp != -999.9F, true, "Wind");
 	}
 
 	if (!root["visibility"].empty())
@@ -490,7 +483,7 @@ void CBuienRadar::GetMeterDetails()
 		float precipitation = root["precipitationmm"].asFloat();
 		SendRainRateSensor(1, 255, precipitation, "Rain");
 		m_itIsRaining = precipitation > 0;
-		SendSwitch(1, 1, 255, m_itIsRaining, 0, "Is it Raining");
+		SendSwitch(1, 1, 255, m_itIsRaining, 0, "Is it Raining", m_Name);
 	}
 }
 
@@ -714,7 +707,7 @@ void CBuienRadar::GetRainPrediction()
 			//double rain_mm_hour = pow(10, ((rain_avg - 109) / 32));
 			double rain_perc = (rain_avg == 0) ? 0 : (rain_avg * 0.392156862745098);
 			SendPercentageSensor(1, 1, 255, static_cast<float>(rain_perc), "Rain Intensity");
-			SendSwitch(2, 1, 255, (rain_perc >= m_iThreshold), 0, "Possible Rain");
+			SendSwitch(2, 1, 255, (rain_perc >= m_iThreshold), 0, "Possible Rain", m_Name);
 		}
 		if (total_rain_values_next_hour)
 		{
